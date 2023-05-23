@@ -1,0 +1,18 @@
+{
+	"debug": true,
+	"server": {
+		"port": 3000,
+		"dbPath": "./data/db.sqlite3",
+		"botToken": "your-bot-token",
+		"webhookDomain": "https://merchant.com/notify"
+	},
+	"imsafu": {
+		"url": "https://devnet.imsafu.com",
+		"api": "https://allowpay-api-devnet.fly.dev/v1",
+		"apiSecret": "devnet-api-secret",
+		"receiver": "your test receiver"
+	},
+	"merchant": {
+		"brand": "safu bot demo"
+	}
+}
