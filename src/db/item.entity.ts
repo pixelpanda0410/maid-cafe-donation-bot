@@ -1,9 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  DeleteDateColumn,
-} from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
 
 @Entity()
 export class Item {

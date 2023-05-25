@@ -1,6 +1,4 @@
 import { chunk } from "lodash";
-import morgan from "morgan";
-import bodyParser from "body-parser";
 import { Context, Markup, NarrowedContext, Telegraf } from "telegraf";
 import hpa from "https-proxy-agent";
 import { ENVS } from "../config/env";
@@ -37,21 +35,19 @@ export class TGBot {
   }
 
   private get firstLevelButtons() {
-    return Markup.inlineKeyboard([
-      Markup.button.callback("list products", "list"),
-    ]);
+    return Markup.inlineKeyboard([Markup.button.callback("展示商品", "list")]);
   }
 
   private listProducts = async (ctx: ActionContext) => {
     const items = await this.db.item.find();
-    const chunkItems = chunk(items, 2);
+    const chunkItems = chunk(items, 1);
     return ctx.reply(
-      "products:",
+      "请选择:",
       Markup.inlineKeyboard(
         chunkItems.map((subItems) =>
           subItems.map((item) =>
             Markup.button.callback(
-              `${item.name} - $${item.price}`,
+              `${item.name}-${item.description}: $${item.price}`,
               `buy_${item.id}`,
             ),
           ),
@@ -68,7 +64,7 @@ export class TGBot {
       if (!chatID || !item) {
         return;
       }
-      await ctx.sendMessage("creating payment...");
+      await ctx.sendMessage("正在创建订单...");
       const res = await this.imsafu.createPayment(item.price);
 
       const payment = {
@@ -88,22 +84,20 @@ export class TGBot {
       const paymentURL = this.imsafu.buildPaymentURL(item, res);
 
       return ctx.reply(
-        `payment created.`,
-        Markup.inlineKeyboard([
-          Markup.button.webApp("Click to pay", paymentURL),
-        ]),
+        `订单创建成功.`,
+        Markup.inlineKeyboard([Markup.button.webApp("请点击按钮", paymentURL)]),
       );
     } catch (e) {
       console.log(e);
-      return ctx.reply(`something wrong, please contact with admin: ${e}`);
+      return ctx.reply(`哇奥，报错了: ${e}`);
     }
   };
 
   notifyPaymentStatus = async (payment: Payment) => {
-    let message = `payment status changed: ${payment.status}`;
+    let message = `订单状态更新: ${payment.status}`;
     let extra;
     if (payment.status === "success") {
-      message = `payment success. transaction: ${payment.receiveTxID}`;
+      message = `捐赠成功. txID: ${payment.receiveTxID}`;
       extra = Markup.inlineKeyboard([
         Markup.button.callback("continue shopping", "list"),
       ]);
@@ -113,9 +107,8 @@ export class TGBot {
 
   initTGBotActions(): TGBot {
     this.bot.start((ctx) =>
-      ctx.reply(`Welcome to ${ENVS.merchant.brand}`, this.firstLevelButtons),
+      ctx.reply(`欢迎来到 ${ENVS.merchant.brand}`, this.firstLevelButtons),
     );
-    this.bot.help((ctx) => ctx.reply("Send me a sticker"));
 
     this.bot.action("list", this.listProducts);
     this.bot.action(/buy_(\d+)/, this.createPayment);

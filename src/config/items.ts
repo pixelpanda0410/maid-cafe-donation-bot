@@ -1,23 +1,23 @@
 const items = [
   {
-    name: "Peanut",
-    description: "🥜",
-    price: 0.01,
+    name: "咖啡豆",
+    description: "",
+    price: 0.5,
   },
   {
-    name: "Banana",
-    description: "🍌",
+    name: "糖",
+    description: "",
     price: 1,
   },
   {
-    name: "Herbs",
-    description: "🚬",
-    price: 4.2,
+    name: "牛奶",
+    description: "",
+    price: 2,
   },
   {
-    name: "Big mac",
-    description: "🍔",
-    price: 5.11,
+    name: "香料",
+    description: "",
+    price: 4,
   },
 ];
 
