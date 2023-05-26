@@ -11,6 +11,7 @@ interface ServerConfig {
   port: number;
   dbPath: string;
   botToken: string;
+  openAIKey: string;
   webhookDomain: string;
 }
 

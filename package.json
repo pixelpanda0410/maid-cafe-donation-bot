@@ -17,6 +17,7 @@
     "https-proxy-agent": "^5.0.1",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
+    "openai": "^3.2.1",
     "reflect-metadata": "^0.1.13",
     "sqlite3": "^5.1.6",
     "telegraf": "^4.12.1",
@@ -36,6 +37,7 @@
   },
   "scripts": {
     "dev": "CONFIG_JSON=`cat config.json` nodemon src/index.ts",
+    "try": "CONFIG_JSON=`cat config.json` ts-node src/testOpenAI.ts",
     "start": "node dist/index.js",
     "build": "tsc",
     "prettier": "prettier --write 'src/**/*.ts'"
