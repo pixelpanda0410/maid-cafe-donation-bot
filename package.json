@@ -39,7 +39,7 @@
   "scripts": {
     "dev": "CONFIG_JSON=`cat config.json` nodemon src/index.ts",
     "try": "CONFIG_JSON=`cat config.json` ts-node src/testOpenAI.ts",
-    "start": "node dist/index.js",
+    "start": "CONFIG_JSON=`cat config.json` node dist/index.js",
     "build": "tsc",
     "prettier": "prettier --write 'src/**/*.ts'"
   }

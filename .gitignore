@@ -23,3 +23,5 @@ config.dev.json
 config.json
 
 *.png
+
+tsconfig.tsbuildinfo
