@@ -24,8 +24,8 @@ export class OpenAIClient {
     return this.sendMessages(chatID, prompt);
   }
 
-  public async getCoffeeTaste(chatID: number, taste: string) {
-    const prompt = `Please generate a coffee taste description based on my coffee description: ${taste}. write in Chinese language.`;
+  public async getCoffeeTaste(chatID: number, ingredients: string) {
+    const prompt = `Please generate a drink taste description based on those ingredients: ${ingredients}. write in Chinese language.`;
     return this.sendMessages(chatID, prompt);
   }
 

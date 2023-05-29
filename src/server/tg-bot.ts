@@ -8,8 +8,9 @@ import { Imsafu } from "../imsafu";
 import dayjs from "dayjs";
 import { Payment } from "../db/payment.entity";
 import path from "node:path";
-import { randomWaitress } from "../assets/characters";
+import { randomPicture, randomWaitress } from "../assets/characters";
 import { OpenAIClient } from "../openai";
+import { randomCoffee } from "../assets/coffee";
 
 type ActionContext = NarrowedContext<
   Context<Update> & {
@@ -18,15 +19,14 @@ type ActionContext = NarrowedContext<
   Update.CallbackQueryUpdate<CallbackQuery>
 >;
 
-interface CoffeeTaste {
-  temperature: number;
-  sweet: number;
-  roast: number;
+interface CoffeeIngredients {
+  messageID: number;
+  ingredients: string[];
 }
 
 export class TGBot {
   private bot: Telegraf<Context<Update>>;
-  private cache: Map<number, CoffeeTaste> = new Map();
+  private cache: Map<number, CoffeeIngredients> = new Map();
   private openAIClient = new OpenAIClient();
 
   constructor(private readonly db: DB, private readonly imsafu: Imsafu) {
@@ -98,51 +98,72 @@ export class TGBot {
     return this.bot.launch();
   }
 
+  private get coffeeIngredientsButton() {
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback("咖啡基底", "add_咖啡"),
+        Markup.button.callback("绿茶基底", "add_绿茶"),
+        Markup.button.callback("红茶基底", "add_红茶"),
+      ],
+      [
+        Markup.button.callback("热水", "add_热水"),
+        Markup.button.callback("牛奶", "add_牛奶"),
+        Markup.button.callback("奶泡", "add_奶泡"),
+        Markup.button.callback("奶油", "add_奶油"),
+      ],
+      [
+        Markup.button.callback("糖", "add_糖"),
+        Markup.button.callback("蜂蜜", "add_蜂蜜"),
+        Markup.button.callback("糖浆", "add_糖浆"),
+        Markup.button.callback("炼乳", "add_炼乳"),
+      ],
+      [
+        Markup.button.callback("可可粉", "add_可可粉"),
+        Markup.button.callback("肉桂粉", "add_肉桂粉"),
+        Markup.button.callback("丁香粉", "add_丁香粉"),
+        Markup.button.callback("豆蔻粉", "add_豆蔻粉"),
+      ],
+      [
+        Markup.button.callback("姜粉", "add_姜粉"),
+        Markup.button.callback("香草精", "add_香草精"),
+        Markup.button.callback("薄荷叶", "add_薄荷叶"),
+        Markup.button.callback("橙皮", "add_橙皮"),
+      ],
+      [Markup.button.callback("决定了", "get_coffee")],
+    ]);
+  }
+
   private listCoffee = async (ctx: ActionContext) => {
-    return ctx.reply(
+    const res = await ctx.reply(
       "选择您想要的口味，别忘了点“决定了”哦！",
-      Markup.inlineKeyboard([
-        [
-          Markup.button.callback("热的", "set_temperature_1"),
-          Markup.button.callback("冰的", "set_temperature_0"),
-        ],
-        [
-          Markup.button.callback("加糖", "set_sweet_1"),
-          Markup.button.callback("无糖", "set_sweet_0"),
-        ],
-        [
-          Markup.button.callback("苦味", "set_roast_1"),
-          Markup.button.callback("酸味", "set_roast_0"),
-        ],
-        [Markup.button.callback("决定了", "get_coffee")],
-      ]),
+      this.coffeeIngredientsButton,
     );
+    this.cache.set(ctx.from?.id!, {
+      messageID: res.message_id,
+      ingredients: [],
+    });
   };
 
-  private setCoffeeTaste = async (ctx: ActionContext) => {
+  private addCoffeeIngredients = async (ctx: ActionContext) => {
     const chatID = ctx.from?.id;
     if (!chatID) {
       return;
     }
     let coffeeTaste = this.cache.get(chatID);
     if (!coffeeTaste) {
-      coffeeTaste = {
-        temperature: -1,
-        sweet: -1,
-        roast: -1,
-      };
+      return this.listCoffee(ctx);
+    } else if (coffeeTaste.ingredients.length >= 5) {
+      return ctx.answerCbQuery("最多只能选五种哦！");
     }
-    const [taste, value] = ctx.match[1].split("_");
-    coffeeTaste[taste as keyof CoffeeTaste] = parseInt(value);
-
+    const value = ctx.match[1];
+    coffeeTaste.ingredients.push(value);
     this.cache.set(chatID, coffeeTaste);
+    const message = this.formatCoffeeTaste(coffeeTaste.ingredients);
+    return ctx.editMessageText(message, this.coffeeIngredientsButton);
   };
 
-  private formatCoffeeTaste = (coffeeTaste: CoffeeTaste) => {
-    const temperature = coffeeTaste.temperature === 1 ? "温暖的" : "凉爽的";
-    const sweet = coffeeTaste.sweet === 1 ? "甜的" : "不甜的";
-    const roast = coffeeTaste.roast === 1 ? "偏向苦味" : "偏向酸味";
-    return `${temperature}，${sweet}，${roast}`;
+  private formatCoffeeTaste = (coffeeIngredient: string[]) => {
+    return coffeeIngredient.join(", ");
   };
 
   private getCoffee = async (ctx: ActionContext) => {
@@ -150,24 +171,31 @@ export class TGBot {
     if (!chatID) {
       return;
     }
-    const message = this.formatCoffeeTaste(this.cache.get(chatID)!);
+    const message = this.formatCoffeeTaste(this.cache.get(chatID)!.ingredients);
     const reply = await this.openAIClient.getCoffeeTaste(chatID, message);
+
+    this.cache.delete(chatID);
+
+    const coffeePic = randomCoffee();
+
+    console.log(coffeePic);
 
     return ctx.replyWithPhoto(
       {
-        source: path.resolve(__dirname, "../assets/coffee/latte.png"),
+        source: coffeePic,
       },
       {
         caption: `*${reply}*`,
         parse_mode: "MarkdownV2",
         reply_markup: {
-          inline_keyboard: [[Markup.button.callback("为咖啡店捐款", "donate")]],
+          inline_keyboard: [
+            [Markup.button.callback("再来一杯", "list_drinks")],
+            [Markup.button.callback("为咖啡店捐款", "donate")],
+          ],
         },
       },
     );
   };
-
-  private customDrink = async (ctx: ActionContext) => {};
 
   private donate = async (ctx: ActionContext) => {
     const items = await this.db.item.find();
@@ -200,23 +228,22 @@ export class TGBot {
       );
       return ctx.replyWithPhoto(
         {
-          source: path.resolve(
-            __dirname,
-            `../assets/characters/${waitress.name.toLowerCase()}/avatar.png`,
-          ),
+          source: randomPicture(waitress),
         },
         {
           caption: `*${greeting}*`,
           parse_mode: "MarkdownV2",
           reply_markup: {
-            inline_keyboard: [[Markup.button.callback("咖啡", "list_coffee")]],
+            inline_keyboard: [
+              [Markup.button.callback("来点喝的", "list_drinks")],
+            ],
           },
         },
       );
     });
 
-    this.bot.action("list_coffee", this.listCoffee);
-    this.bot.action(/set_(\w+)/, this.setCoffeeTaste);
+    this.bot.action("list_drinks", this.listCoffee);
+    this.bot.action(/add_(.+)/, this.addCoffeeIngredients);
     this.bot.action("get_coffee", this.getCoffee);
     this.bot.action("donate", this.donate);
     this.bot.action(/buy_(\d+)/, this.createPayment);

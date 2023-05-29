@@ -1,3 +1,6 @@
+import { readdirSync } from "node:fs";
+import path from "node:path";
+
 export interface Character {
   name: string;
   age: number;
@@ -18,11 +21,11 @@ export enum Disposition {
 }
 
 export const characters: Character[] = [
-  // {
-  //   name: "Yui",
-  //   age: 18,
-  //   disposition: Disposition.Cute,
-  // },
+  {
+    name: "Yui",
+    age: 28,
+    disposition: Disposition.Ladylike,
+  },
   // {
   //   name: "Hana",
   //   age: 16,
@@ -30,8 +33,8 @@ export const characters: Character[] = [
   // },
   {
     name: "Yumi",
-    age: 24,
-    disposition: Disposition.Ladylike,
+    age: 18,
+    disposition: Disposition.Cute,
   },
 ];
 
@@ -39,4 +42,15 @@ export function randomWaitress() {
   const randomInt = Math.floor(Math.random() * 10) % characters.length;
 
   return characters[randomInt];
+}
+
+export function randomPicture(chatacter: Character) {
+  const files = readdirSync(
+    path.resolve(__dirname, `./${chatacter.name.toLocaleLowerCase()}`),
+  );
+  const randomInt = Math.floor(Math.random() * files.length);
+  return path.resolve(
+    __dirname,
+    `./${chatacter.name.toLowerCase()}/${files[randomInt]}`,
+  );
 }

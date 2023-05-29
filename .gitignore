@@ -21,3 +21,5 @@ yarn-error.log*
 *.sqlite3
 config.dev.json
 config.json
+
+*.png
