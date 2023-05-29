@@ -4,7 +4,7 @@ services:
     image: node:18
     ports:
       - 3000:3000
-    command: yarn build && yarn start
+    command: "cd /app && yarn build && yarn start"
     volumes:
       - .:/app
     environment:
