@@ -4,8 +4,9 @@ services:
     image: node:18.16
     ports:
       - 3000:3000
-    command: sh -c "cd /app && yarn && yarn build && yarn start"
+    command: sh -c "cd /app && yarn start"
     volumes:
       - .:/app
     environment:
       - NODE_ENV=production
+    restart: always
