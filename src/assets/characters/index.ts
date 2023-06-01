@@ -5,6 +5,7 @@ export interface Character {
   name: string;
   age: number;
   disposition: Disposition;
+  topics: string[];
 }
 
 export enum Disposition {
@@ -25,16 +26,26 @@ export const characters: Character[] = [
     name: "Yui",
     age: 28,
     disposition: Disposition.Ladylike,
+    topics: [
+      "the weather",
+      "anime you've watched recently",
+      "favorite video game",
+      "favorite movie",
+      "gained weight recently",
+      "new zelda game",
+    ],
   },
-  // {
-  //   name: "Hana",
-  //   age: 16,
-  //   disposition: Disposition.Genki,
-  // },
   {
     name: "Yumi",
     age: 18,
     disposition: Disposition.Cute,
+    topics: [
+      "the weather",
+      "anime you've watched recently",
+      "favorite book",
+      "favorite movie",
+      "elves life troubles",
+    ],
   },
 ];
 

@@ -7,10 +7,8 @@ import { DB } from "../db";
 import { Imsafu } from "../imsafu";
 import dayjs from "dayjs";
 import { Payment } from "../db/payment.entity";
-import path from "node:path";
-import { randomPicture, randomWaitress } from "../assets/characters";
+import { Character, randomPicture, randomWaitress } from "../assets/characters";
 import { OpenAIClient } from "../openai";
-import { randomCoffee } from "../assets/coffee";
 
 type ActionContext = NarrowedContext<
   Context<Update> & {
@@ -26,7 +24,8 @@ interface CoffeeIngredients {
 
 export class TGBot {
   private bot: Telegraf<Context<Update>>;
-  private cache: Map<number, CoffeeIngredients> = new Map();
+  private coffeeCache: Map<number, CoffeeIngredients> = new Map();
+  private waitressCache: Map<number, Character> = new Map();
   private openAIClient = new OpenAIClient();
 
   constructor(private readonly db: DB, private readonly imsafu: Imsafu) {
@@ -138,7 +137,7 @@ export class TGBot {
       "选择您想要的口味，别忘了点“决定了”哦！",
       this.coffeeIngredientsButton,
     );
-    this.cache.set(ctx.from?.id!, {
+    this.coffeeCache.set(ctx.from?.id!, {
       messageID: res.message_id,
       ingredients: [],
     });
@@ -149,7 +148,7 @@ export class TGBot {
     if (!chatID) {
       return;
     }
-    let coffeeTaste = this.cache.get(chatID);
+    let coffeeTaste = this.coffeeCache.get(chatID);
     if (!coffeeTaste) {
       return this.listCoffee(ctx);
     } else if (coffeeTaste.ingredients.length >= 5) {
@@ -157,7 +156,7 @@ export class TGBot {
     }
     const value = ctx.match[1];
     coffeeTaste.ingredients.push(value);
-    this.cache.set(chatID, coffeeTaste);
+    this.coffeeCache.set(chatID, coffeeTaste);
     const message = this.formatCoffeeTaste(coffeeTaste.ingredients);
     return ctx.editMessageText(message, this.coffeeIngredientsButton);
   };
@@ -166,26 +165,54 @@ export class TGBot {
     return coffeeIngredient.join(", ");
   };
 
+  private ChatWithWaitress = async (ctx: any) => {
+    const chatID = ctx.from?.id;
+    if (!chatID) {
+      return;
+    }
+    const waitress = this.waitressCache.get(chatID);
+    if (!waitress) {
+      return;
+    }
+    const coffeeIngredients = this.coffeeCache.get(chatID);
+    if (!coffeeIngredients) {
+      return ctx.reply(`(${waitress.name} 看上去很忙。)`);
+    }
+    const message = await this.openAIClient.chatWithCharacter(
+      chatID,
+      ctx.message!.text,
+    );
+    return ctx.reply(message);
+  };
+
   private getCoffee = async (ctx: ActionContext) => {
     const chatID = ctx.from?.id;
     if (!chatID) {
       return;
     }
-    const message = this.formatCoffeeTaste(this.cache.get(chatID)!.ingredients);
-    const reply = await this.openAIClient.getCoffeeTaste(chatID, message);
 
-    this.cache.delete(chatID);
+    let message;
 
-    const coffeePic = randomCoffee();
+    message = await this.openAIClient.startTopic(
+      chatID,
+      this.waitressCache.get(chatID)!,
+    );
 
-    console.log(coffeePic);
+    ctx.sendMessage(message);
 
-    return ctx.replyWithPhoto(
-      {
-        source: coffeePic,
-      },
-      {
-        caption: `*${reply}*`,
+    setTimeout(async () => {
+      message = this.formatCoffeeTaste(
+        this.coffeeCache.get(chatID)!.ingredients,
+      );
+      const reply = await this.openAIClient.getCoffeeTaste(chatID, message);
+
+      ctx.sendMessage(reply);
+    }, 1000 * 60 * 1);
+
+    setTimeout(async () => {
+      this.coffeeCache.delete(chatID);
+
+      return ctx.reply(`我需要去工作啦，下次再见。`, {
         parse_mode: "MarkdownV2",
         reply_markup: {
           inline_keyboard: [
@@ -193,8 +220,8 @@ export class TGBot {
             [Markup.button.callback("为咖啡店捐款", "donate")],
           ],
         },
-      },
-    );
+      });
+    }, 1000 * 60 * 5);
   };
 
   private donate = async (ctx: ActionContext) => {
@@ -222,16 +249,13 @@ export class TGBot {
       if (!chatID) {
         return;
       }
-      const greeting = await this.openAIClient.getGreetingMessage(
-        chatID,
-        waitress,
-      );
+      this.waitressCache.set(chatID, waitress);
       return ctx.replyWithPhoto(
         {
           source: randomPicture(waitress),
         },
         {
-          caption: `*${greeting}*`,
+          caption: `*我是 ${waitress.name}，欢迎来到幻想咖啡*`,
           parse_mode: "MarkdownV2",
           reply_markup: {
             inline_keyboard: [
@@ -247,6 +271,8 @@ export class TGBot {
     this.bot.action("get_coffee", this.getCoffee);
     this.bot.action("donate", this.donate);
     this.bot.action(/buy_(\d+)/, this.createPayment);
+
+    this.bot.on("text", this.ChatWithWaitress);
     return this;
   }
 }

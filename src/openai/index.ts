@@ -16,12 +16,19 @@ export class OpenAIClient {
   );
   private cache = new Map<number, ChatCompletionRequestMessage[]>();
 
-  public async getGreetingMessage(chatID: number, character: Character) {
+  public async startTopic(chatID: number, character: Character) {
+    const topic =
+      character.topics[Math.floor(Math.random() * character.topics.length)];
     const prompt = `You're a ${character.age} year old ${
       character.disposition
-    } type girl, you work in a coffee shop and it's ${now()}. A customer walks into a coffee shop. greeting to him, output only greeting. write in Chinese language.`;
+    } type girl, you work in a coffee shop and it's ${now()}. please talk about ${topic}.
+    . write in Chinese language.`;
 
     return this.sendMessages(chatID, prompt);
+  }
+
+  public async chatWithCharacter(chatID: number, message: string) {
+    return this.sendMessages(chatID, message);
   }
 
   public async getCoffeeTaste(chatID: number, ingredients: string) {
@@ -50,7 +57,7 @@ export class OpenAIClient {
 
     messages.push({
       role: ChatCompletionRequestMessageRoleEnum.System,
-      content: answer,
+      content,
     });
 
     this.cache.set(chatID, messages);
