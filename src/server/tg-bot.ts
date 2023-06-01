@@ -190,6 +190,12 @@ export class TGBot {
     if (!chatID) {
       return;
     }
+    const waitress = this.waitressCache.get(chatID);
+    if (!waitress) {
+      return;
+    }
+
+    ctx.sendMessage(`(${waitress.name} 正在制作您的饮品)`);
 
     let message;
 
@@ -204,9 +210,10 @@ export class TGBot {
       message = this.formatCoffeeTaste(
         this.coffeeCache.get(chatID)!.ingredients,
       );
+
       const reply = await this.openAIClient.getCoffeeTaste(chatID, message);
 
-      ctx.sendMessage(reply);
+      ctx.sendMessage(`(${waitress.name} 递给你一杯饮品) ${reply}`);
     }, 1000 * 60 * 1);
 
     setTimeout(async () => {
@@ -221,7 +228,7 @@ export class TGBot {
           ],
         },
       });
-    }, 1000 * 60 * 5);
+    }, 1000 * 60 * 3);
   };
 
   private donate = async (ctx: ActionContext) => {
