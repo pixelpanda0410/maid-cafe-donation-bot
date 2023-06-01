@@ -31,7 +31,6 @@ export const characters: Character[] = [
       "anime you've watched recently",
       "favorite video game",
       "favorite movie",
-      "gained weight recently",
       "new zelda game",
     ],
   },

@@ -43,21 +43,22 @@ export class OpenAIClient {
     };
     const messages = this.cache.get(chatID) ?? [];
 
-    console.log({ type: "openai", content });
+    console.log({ type: "user", content });
 
     const completion = await this.openAI.createChatCompletion({
       model: "gpt-3.5-turbo",
       messages: [...messages, newMessage],
     });
+    messages.push(newMessage);
     const answer = completion.data.choices[0].message?.content;
     if (!answer) {
       throw new Error("No answer from OpenAI");
     }
-    console.log({ type: "openai", answer });
+    console.log({ type: "system", answer });
 
     messages.push({
       role: ChatCompletionRequestMessageRoleEnum.System,
-      content,
+      content: answer,
     });
 
     this.cache.set(chatID, messages);
